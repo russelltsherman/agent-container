@@ -7,6 +7,16 @@ iptables -F OUTPUT
 # Allow loopback (squid listens on 127.0.0.1:3128)
 iptables -A OUTPUT -o lo -j ACCEPT
 
+# Allow direct traffic to the Docker host gateway (host.docker.internal).
+# This lets the omlx aliases reach the local model server without going
+# through squid, which Node.js HTTP clients don't reliably support for
+# plain HTTP. Safe because the host is the user's own machine, not the
+# public internet.
+HOST_GW=$(getent hosts host.docker.internal 2>/dev/null | awk '{print $1}') || true
+if [[ -n "${HOST_GW:-}" ]]; then
+  iptables -A OUTPUT -d "$HOST_GW" -j ACCEPT
+fi
+
 # Allow the squid proxy user to reach the internet
 iptables -A OUTPUT -m owner --uid-owner proxy -j ACCEPT
 
