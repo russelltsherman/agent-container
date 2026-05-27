@@ -27,6 +27,7 @@
   "mounts": [
     // Mount host config repos for each AI coding tool so credentials
     // and settings are available without being committed to the image.
+
     // shared agents configuration
     "source=${localEnv:HOME}/.agents/,target=/home/vscode/.agents/,type=bind",
 
@@ -34,12 +35,17 @@
     "source=${localEnv:HOME}/.claude/,target=/home/vscode/.claude/,type=bind",
     "source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind",
 
+    // GH config (readonly)
+    "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,readonly",
+
     // Git config (readonly)
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
 
+    // SSH config (readonly)
+    "source=${localEnv:HOME}/.ssh/,target=/home/vscode/.ssh/,type=bind,readonly",
+
     // Graphite config
-    "source=${localEnv:HOME}/.config/graphite/aliases,target=/home/vscode/.config/graphite/aliases,type=bind,readonly",
-    "source=${localEnv:HOME}/.config/graphite/user_config,target=/home/vscode/.config/graphite/user_config,type=bind"
+    "source=${localEnv:HOME}/.config/graphite/,target=/home/vscode/.config/graphite/,type=bind"
 
     // Paths listed in .devcontainer/protected-paths are shadowed from inside
     // the container at startup by /usr/local/sbin/protect-paths. See
