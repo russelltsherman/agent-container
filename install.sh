@@ -28,7 +28,7 @@ print_usage() {
     Commands:
         .                   Install devcontainer template to current directory and start
         up                  Start the devcontainer in current directory
-        rebuild             Rebuild the devcontainer (preserves auth volumes)
+        rebuild [--no-cache]  Rebuild the devcontainer (preserves auth volumes)
         down                Stop the devcontainer
         shell               Open a shell in the running container
         self-install        Install 'devc' command to ~/.local/bin
@@ -46,6 +46,7 @@ print_usage() {
         devc .                      # Install template and start container
         devc up                     # Start container in current directory
         devc rebuild                # Clean rebuild
+        devc rebuild --no-cache     # Rebuild image from scratch (no build cache)
         devc shell                  # Open interactive shell
         devc self-install           # Install devc to PATH
         devc update                 # Update to latest version
@@ -238,14 +239,38 @@ cmd_up() {
 }
 
 cmd_rebuild() {
+  local no_cache=false
+  local positional=""
+
+  # Parse flags; remaining positional arg is the optional workspace folder.
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --no-cache)
+      no_cache=true
+      shift
+      ;;
+    *)
+      positional="$1"
+      shift
+      ;;
+    esac
+  done
+
   local workspace_folder
-  workspace_folder="$(get_workspace_folder "${1:-}")"
+  workspace_folder="$(get_workspace_folder "$positional")"
 
   check_devcontainer_cli
   check_no_sys_admin "$workspace_folder"
-  log_info "Rebuilding devcontainer in $workspace_folder..."
 
-  devcontainer up --workspace-folder "$workspace_folder" --remove-existing-container
+  local -a build_args=(--remove-existing-container)
+  if [[ "$no_cache" == true ]]; then
+    log_info "Rebuilding devcontainer (no cache) in $workspace_folder..."
+    build_args+=(--build-no-cache)
+  else
+    log_info "Rebuilding devcontainer in $workspace_folder..."
+  fi
+
+  devcontainer up --workspace-folder "$workspace_folder" "${build_args[@]}"
   log_success "Devcontainer rebuilt"
 }
 
