@@ -38,6 +38,7 @@ REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 INSTALL="$REPO_ROOT/install.sh"
 INITIALIZE="$REPO_ROOT/config/initialize.sh"
 PROTECT_PATHS="$REPO_ROOT/config/protect-paths"
+PROTECT_EGRESS="$REPO_ROOT/config/protect-egress"
 
 # Save real PATH/HOME before per-test setup() swaps them for stubs.
 REAL_PATH="$PATH"
@@ -387,6 +388,67 @@ CFG
   [ "$status" -eq 0 ]
   [[ "$output" == *"refusing exclusion '/etc/passwd'"* ]]
   [[ "$output" == *"refusing exclusion '../escape'"* ]]
+}
+
+# ===========================================================================
+# config/protect-egress — host-gateway egress rules (unit, no container)
+# ===========================================================================
+#
+# protect-egress normally runs inside the devcontainer with CAP_NET_ADMIN and
+# programs iptables/ip6tables. For unit tests we stub both binaries (PATH-first
+# from the stubs dir) to record their arguments, and feed a fixture /etc/hosts
+# via PROTECT_EGRESS_HOSTS_FILE — a testing seam honored only here; production
+# reads the real /etc/hosts.
+#
+# Regression guard: the host.docker.internal gateway is dual-stack in
+# /etc/hosts (Docker's --add-host writes an IPv4 *and* an IPv6 entry). The old
+# code resolved it with `getent hosts`, which returns only one family — when
+# that was IPv6-only, no IPv4 ACCEPT rule was created, the app's IPv4 connection
+# hit the terminal DROP, and the omlx/ollama API silently timed out.
+
+# Run protect-egress against a fixture hosts file with iptables/ip6tables stubbed
+# to record their invocations into $BATS_TEST_TMPDIR/calls/{iptables,ip6tables}.
+_pe_run() {
+  local hosts="$1"
+  create_stub iptables  0 ""
+  create_stub ip6tables 0 ""
+  PROTECT_EGRESS_HOSTS_FILE="$hosts" bash "$PROTECT_EGRESS"
+}
+
+@test "T-PE-01: dual-stack gateway is allowed for BOTH IPv4 and IPv6" {
+  local hosts="$BATS_TEST_TMPDIR/hosts"
+  cat > "$hosts" <<'HOSTS'
+127.0.0.1	localhost
+192.168.65.254	host.docker.internal
+fdc4:f303:9324::254	host.docker.internal
+172.17.0.5	4c3a805811b0
+HOSTS
+  _pe_run "$hosts"
+  # The IPv4 rule is the one the old getent-hosts code intermittently dropped.
+  [[ "$(stub_calls iptables)"  == *"-A OUTPUT -d 192.168.65.254 -j ACCEPT"* ]]
+  [[ "$(stub_calls ip6tables)" == *"-A OUTPUT -d fdc4:f303:9324::254 -j ACCEPT"* ]]
+}
+
+@test "T-PE-02: an IPv4-only gateway entry still yields an IPv4 ACCEPT" {
+  # The exact failing scenario inverted: whatever family /etc/hosts advertises
+  # for the gateway must get a rule — resolution must not be able to drop it.
+  local hosts="$BATS_TEST_TMPDIR/hosts"
+  printf '192.168.65.254\thost.docker.internal\n' > "$hosts"
+  _pe_run "$hosts"
+  [[ "$(stub_calls iptables)" == *"-A OUTPUT -d 192.168.65.254 -j ACCEPT"* ]]
+}
+
+@test "T-PE-03: gateway ACCEPT precedes the terminal DROP (not shadowed)" {
+  local hosts="$BATS_TEST_TMPDIR/hosts"
+  printf '192.168.65.254\thost.docker.internal\n' > "$hosts"
+  _pe_run "$hosts"
+  local calls accept_line drop_line
+  calls="$(stub_calls iptables)"
+  accept_line="$(grep -n -- "-A OUTPUT -d 192.168.65.254 -j ACCEPT" <<<"$calls" | head -1 | cut -d: -f1)"
+  drop_line="$(grep -n -- "-A OUTPUT -j DROP" <<<"$calls" | head -1 | cut -d: -f1)"
+  [ -n "$accept_line" ]
+  [ -n "$drop_line" ]
+  [ "$accept_line" -lt "$drop_line" ]
 }
 
 # ===========================================================================
