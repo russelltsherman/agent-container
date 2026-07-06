@@ -45,8 +45,8 @@ RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
 
 # install NPM dependencies
 RUN npm install -g \
-    @mariozechner/pi-coding-agent@0.80.3 \
-    @openai/codex@0.142.5 \
+    @mariozechner/pi-coding-agent@0.73.1 \
+    @openai/codex@0.137.0 \
     @devcontainers/cli@0.87.0 \
     @withgraphite/graphite-cli@1.8.6 \
     && npm cache clean --force
