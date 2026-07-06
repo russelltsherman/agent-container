@@ -84,6 +84,9 @@
     // Codex Config
     "source=${localEnv:HOME}/.codex/,target=/home/vscode/.codex/,type=bind",
 
+    // Pi Coding agent
+    "source=${localEnv:HOME}/.pi/,target=/home/vscode/.pi/,type=bind",
+
     // Git config (bot identity)
     "source=${localEnv:HOME}/.bot/gitconfig,target=/home/vscode/.gitconfig,type=bind",
 
