@@ -16,8 +16,8 @@
     "HTTPS_PROXY": "http://127.0.0.1:3128",
     "no_proxy": "host.docker.internal",
     "NO_PROXY": "host.docker.internal",
-    // OMLX local model server on the host. Forwarded to the omlx/omlx-yolo
-    // shell functions which replicate the env that `omlx launch claude` sets.
+    // OMLX local model server on the host. Forwarded to the omlx
+    // shell function which replicate the env that `omlx launch claude` sets.
     // MLX_MODEL is the base/default model id loaded in omlx (e.g.
     // "qwen3-32b-4bit"). MLX_OPUS_MODEL / MLX_SONNET_MODEL / MLX_HAIKU_MODEL
     // optionally map each Claude tier to a distinct model id; any tier left
@@ -30,16 +30,19 @@
     "MLX_HAIKU_MODEL": "${localEnv:MLX_HAIKU_MODEL}",
     "MLX_CONTEXT_WINDOW": "${localEnv:MLX_CONTEXT_WINDOW}",
 
-    // Ollama local model server on the host. Forwarded to the ollama/ollama-yolo
-    // shell functions, which point Claude Code at Ollama's native Anthropic API
-    // (/v1/messages) via host.docker.internal. OLLAMA_MODEL is required — it must
-    // name an installed Ollama model (e.g. qwen3.6:35b-mlx) or the launcher errors.
-    // On Docker Desktop (macOS/Windows) the container reaches the host's default
-    // 127.0.0.1-bound ollama via host.docker.internal; on native Linux Docker,
-    // bind ollama to 0.0.0.0 instead.
-    "OLLAMA_MODEL": "${localEnv:OLLAMA_MODEL}",
-    "OLLAMA_PORT": "${localEnv:OLLAMA_PORT}",
-    "OLLAMA_API_KEY": "${localEnv:OLLAMA_API_KEY}"
+    // MTPLX local model server on the host. Forwarded to the mtplx
+    // shell function which replicate the env that `omlx launch claude` sets.
+    // MTPLX_MODEL is the base/default model id loaded in omlx (e.g.
+    // "qwen3-32b-4bit"). MTPLX_OPUS_MODEL / MTPLX_SONNET_MODEL / MTPLX_HAIKU_MODEL
+    // optionally map each Claude tier to a distinct model id; any tier left
+    // unset falls back to MTPLX_MODEL. MTPLX_CONTEXT_WINDOW is optional.
+    "MTPLX_API_KEY": "${localEnv:MTPLX_API_KEY}",
+    "MTPLX_PORT": "${localEnv:MTPLX_PORT}",
+    "MTPLX_MODEL": "${localEnv:MTPLX_MODEL}",
+    "MTPLX_OPUS_MODEL": "${localEnv:MTPLX_OPUS_MODEL}",
+    "MTPLX_SONNET_MODEL": "${localEnv:MTPLX_SONNET_MODEL}",
+    "MTPLX_HAIKU_MODEL": "${localEnv:MTPLX_HAIKU_MODEL}",
+    "MTPLX_CONTEXT_WINDOW": "${localEnv:MTPLX_CONTEXT_WINDOW}",
   },
 
   "initializeCommand": "bash .agentcontainer/scripts/initialize.sh",
